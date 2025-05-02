@@ -285,6 +285,41 @@ body {
   margin-left:20px;
 }
 
+/* Posting Controls */
+.posting-controls {
+  display: flex;
+  justify-content: flex-start;
+  margin: 20px 0 30px 0;
+}
+
+.posting-button {
+  background-color: var(--LEEDZ_DARKGREEN);
+  color: white;
+  font-size: 22px;
+  letter-spacing:0.03em;
+  font-weight: bold;
+  padding: 16px;
+  border-radius: 6px;
+  width:200px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+}
+
+.posting-button:hover {
+  background-color: #018e47;
+}
+
+.process-icon {
+  width: 32px;
+  height: 32px;
+  margin-left: 10px;
+  transition: transform 0.2s ease;
+}
+
 /* Footer */
 .leedz-footer {
   position: relative;

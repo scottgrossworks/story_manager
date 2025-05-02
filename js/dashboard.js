@@ -272,6 +272,17 @@ class LeedzApp {
     
     // Validate frequency number on blur
     this.elements.frequencyNumber.addEventListener('blur', (e) => this.validateFrequencyNumber(e.target.value));
+    
+    // Start posting button 
+    const startPostingBtn = document.getElementById('startPostingBtn');
+    if (startPostingBtn) {
+      startPostingBtn.addEventListener('click', () => {
+        // Call the Poster module to start the posting process
+        if (window.Poster) {
+          window.Poster.startPosting();
+        }
+      });
+    }
   }
   
   // Toggle accordion section
