@@ -119,9 +119,19 @@ const FileSelector = {
           resolve(files);
 
         } catch (err) {
-          // Log the error, but don't automatically trigger fallback on cancel/error
-          console.warn('File System Access API failed or cancelled:', err);
-          // Resolve with empty array to indicate no files selected via this method
+          // Check if this is an "abort" error (user cancelled)
+          if (err.name === 'AbortError') {
+            console.log('User cancelled file selection');
+          } else {
+            // Log actual errors but not cancellations
+            console.warn('File System Access API failed:', err);
+          }
+          // Fall back to traditional file input when API fails (but not when user cancels)
+          if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+            console.log('Falling back to traditional file input due to API error');
+            return fallbackSelect();
+          }
+          // Return empty array when operation was cancelled
           resolve([]); 
         }
       });
