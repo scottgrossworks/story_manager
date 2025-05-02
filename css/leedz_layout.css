@@ -46,9 +46,14 @@ body {
 .content-area {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+ 
   position: relative;
-  z-index: 50;
+  z-index: 60;
+
+  padding: 20px;
+  height:min-content;
+
+
 }
 
 /* Accordion Sections */
@@ -56,6 +61,7 @@ body {
   margin-bottom: 15px;
   border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* Shadow effect */
 }
 
 .accordion-header {
@@ -176,7 +182,7 @@ body {
 }
 
 .file-table {
-  width: 70%;
+  width: 100%;
   border-collapse: collapse;
   margin-bottom: 15px;
 }
@@ -189,6 +195,28 @@ body {
 
 .file-table th {
   background-color: #f2f2f2;
+}
+
+/* Table column width distribution */
+.file-table th:first-child, /* # column */
+.file-table td:first-child {
+  width: 5%;
+  text-align: center;
+}
+
+.file-table th:nth-child(2), /* Filename column */
+.file-table td:nth-child(2) {
+  width: 65%; /* Give the majority of space to filename */
+}
+
+.file-table th:nth-child(3), /* Move Up column */
+.file-table td:nth-child(3),
+.file-table th:nth-child(4), /* Move Down column */
+.file-table td:nth-child(4),
+.file-table th:nth-child(5), /* Remove column */
+.file-table td:nth-child(5) {
+  width: 10%; /* Each action column gets 10% */
+  text-align: center;
 }
 
 .file-action {
@@ -212,7 +240,6 @@ body {
 .remove {
   color: red;
 }
-
 
 #orderContent {
   margin-left:30px;
@@ -320,6 +347,62 @@ body {
   transition: transform 0.2s ease;
 }
 
+/* Terms of Service Page Styles */
+.tos-title-section {
+  text-align: center;
+  margin: 20px 0 30px;
+}
+
+.tos-title-section h1 {
+  color: var(--LEEDZ_DARKGREEN);
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.tos-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.tos-content ul {
+  margin-top:20px;
+  margin-left:40px;
+}
+
+.tos-section {
+  margin: 25px 0;
+}
+
+.tos-section h2 {
+  color: var(--LEEDZ_DARKGREEN);
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.back-section {
+  text-align: center;
+  margin: 30px 0;
+}
+
+.back-button {
+  display: inline-block;
+  background-color: var(--LEEDZ_DARKGREEN);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+  background-color: #018e47;
+}
+
 /* Footer */
 .leedz-footer {
   position: relative;
@@ -356,6 +439,10 @@ body {
   transform: translateY(-20px);
   margin-left:40px;
   gap: 5px;
+}
+
+.footer-links a {
+  text-decoration:none;
 }
 
 .footer-link {
