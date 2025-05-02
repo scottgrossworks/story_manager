@@ -1,127 +1,75 @@
-// Leedz Poster - Handles Instagram posting logic
-// Separated from dashboard.js for cleaner code organization
-
-// The Poster module manages Instagram interactions for posting
+/**
+ * Poster module for Leedz Story
+ * Handles posting stories to Instagram or other platforms
+ */
 const Poster = {
-  // Flag to track if posting is active
+  // Keep track of the posting process
   isPosting: false,
-  
-  // Reference to the rotation animation interval
   rotationInterval: null,
-  
-  // Rotation angle tracker
-  currentRotation: 0,
-  
-  // File Manager instance 
-  fileManager: null,
+  rotationDegree: 0,
   
   // Start the posting process
-  startPosting: function() {
-    if (this.isPosting) return false; // Don't start if already running
-    
-    // Initialize file manager if needed
-    if (!this.fileManager) {
-      this.fileManager = new FileManager();
-      this.fileManager.init();
-    }
-    
-    this.isPosting = true;
-    
-    // Start icon rotation
-    this.startIconRotation();
-    
-    // Get next file to post based on sort order and settings
-    this.postNextFile();
-     
-    return true;
-  },
-  
-  // Post the next file based on current settings
-  postNextFile: function() {
-    if (!this.isPosting) return;
-    
-    // Get frequency settings from LeedzApp
-    const frequency = {
-      value: 24,
-      unit: 'hours'
-    };
-    
-    if (window.leedzApp && window.leedzApp.state.postFrequency) {
-      frequency.value = window.leedzApp.state.postFrequency.value;
-      frequency.unit = window.leedzApp.state.postFrequency.unit;
-    }
-    
-    // Get next file to post
-    const nextFile = this.fileManager.getNextFile(frequency);
-    
-    if (!nextFile) {
-      console.warn("No files available for posting");
-      this.completePoster();
+  start: async function() {
+    if (this.isPosting) {
+      console.log("Already posting");
       return;
     }
     
-    console.log("Posting file:", nextFile.name);
+    console.log("Starting posting process");
+    this.isPosting = true;
     
-    // Post the file
-    this.postFile(nextFile).then(success => {
+    // Start the icon rotation
+    this.startIconRotation();
+    
+    try {
+      // Get the next file to post from the FileManager
+      const nextFile = window.fileManager.getNextFile();
+      
+      if (!nextFile) {
+        console.error("No files to post");
+        alert("No files available to post. Please add some files first.");
+        this.isPosting = false;
+        this.stopIconRotation();
+        return;
+      }
+      
+      console.log("Next file to post:", nextFile.name);
+      
+      // Post the file to Instagram
+      const success = await this.postFile(nextFile);
+      
       if (success) {
-        // Mark as played
-        this.fileManager.markFileAsPlayed(nextFile.id);
-        
-        // Complete the posting process
-        this.completePoster();
+        console.log("Successfully posted file:", nextFile.name);
+        // Mark the file as posted
+        await window.fileManager.markFileAsPlayed(nextFile.id);
       } else {
         console.error("Failed to post file:", nextFile.name);
-        this.completePoster();
       }
-    });
-  },
-  
-  // Handle posting completion
-  completePoster: function() {
-    if (!this.isPosting) return;
-    
-    this.isPosting = false;
-    this.stopIconRotation();
-    
-    console.log("Posting process completed");
-    
-    // Update dashboard if needed
-    if (window.leedzApp) {
-      // Update last post date
-      window.leedzApp.state.lastPostDate = new Date();
-      
-      // Update file last played dates if needed
-      // TODO: Implement this based on which files were actually posted
-      
-      // Save the updated state
-      window.leedzApp.saveData();
+    } catch (error) {
+      console.error("Error in posting process:", error);
+    } finally {
+      this.isPosting = false;
+      this.stopIconRotation();
     }
   },
   
   // Start the icon rotation animation
   startIconRotation: function() {
-    // Get the process icon element
     const iconElement = document.getElementById('processIcon');
     if (!iconElement) return;
     
-    // Make sure it's visible
-    iconElement.style.display = 'inline-block';
-    this.currentRotation = 0;
+    this.rotationDegree = 0;
     
     // Clear any existing interval
     if (this.rotationInterval) {
       clearInterval(this.rotationInterval);
     }
     
-    // Start rotation animation
+    // Start a new rotation interval
     this.rotationInterval = setInterval(() => {
-      this.currentRotation += 5; // Increment by 5 degrees each frame
-      if (this.currentRotation >= 360) {
-        this.currentRotation = 0;
-      }
-      iconElement.style.transform = `rotate(${this.currentRotation}deg)`;
-    }, 50); // Update every 50ms for smooth animation
+      this.rotationDegree = (this.rotationDegree + 10) % 360;
+      iconElement.style.transform = `rotate(${this.rotationDegree}deg)`;
+    }, 50);
   },
   
   // Stop the icon rotation animation
@@ -139,20 +87,39 @@ const Poster = {
   },
   
   // Post a single file to Instagram
-  postFile: function(file) {
-    return new Promise((resolve, reject) => {
-      console.log("Posting file to Instagram:", file.name);
+  postFile: async function(fileMetadata) {
+    try {
+      console.log("Preparing to post file:", fileMetadata.name);
       
-      // TODO: Implement actual Instagram posting logic
+      // Get the actual file only when needed using the file handle
+      const file = await window.fileManager.getFileForPosting(fileMetadata.id);
+      
+      if (!file) {
+        console.error("Could not access file:", fileMetadata.name);
+        return false;
+      }
+      
+      console.log("File accessed successfully, size:", file.size);
+      
+      // Post the file to Instagram
+      // This is where the actual posting logic would go
+      // For demo purposes, we're just simulating it
+      
+      // Post this story to IG
       // This would interact with Instagram's API or interface
+      // FIXME FIXME FIXME
       
       // For demo purposes, just resolve after a delay
-      setTimeout(() => {
-        // Update the file's last played date
-        file.lastPlayed = new Date();
-        resolve(true);
-      }, 1000);
-    });
+      return new Promise(resolve => {
+        setTimeout(() => {
+          console.log("Posted file to Instagram:", file.name);
+          resolve(true);
+        }, 1000);
+      });
+    } catch (error) {
+      console.error("Error posting file:", error);
+      return false;
+    }
   }
 };
 

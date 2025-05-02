@@ -198,7 +198,7 @@ body {
 }
 
 /* Table column width distribution */
-.file-table th:first-child, /* # column */
+.file-table th:first-child, /* # column */No
 .file-table td:first-child {
   width: 5%;
   text-align: center;
@@ -320,7 +320,7 @@ body {
 }
 
 .posting-button {
-  background-color: var(--LEEDZ_DARKGREEN);
+  background-color: darkgreen;
   color: white;
   font-size: 22px;
   letter-spacing:0.03em;
@@ -337,7 +337,7 @@ body {
 }
 
 .posting-button:hover {
-  background-color: #018e47;
+  background-color: var(--LEEDZ_DARKGREEN);
 }
 
 .process-icon {

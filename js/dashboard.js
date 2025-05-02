@@ -66,79 +66,70 @@ const InstagramManager = {
 };
 
 // File selection helper for choosing files through browser dialogs
-const FileSelector = {
-  // Select files using system dialog
-  selectFiles: async function() {
-    // Define the fallback function separately for clarity
-    const fallbackSelect = () => {
-      return new Promise((resolve) => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.multiple = true;
-        input.accept = 'video/*,image/*';
-        
-        input.onchange = (e) => {
-          const selectedFiles = Array.from(e.target.files).map(file => ({
-            path: file.name, // Note: full path is not available for security reasons
-            name: file.name
-          }));
-          resolve(selectedFiles);
-        };
-        
-        input.click(); // Trigger the dialog
-      });
-    };
-
-    // Try using modern File System Access API if available
-    if (window.showOpenFilePicker) {
-      return new Promise(async (resolve) => {
+class FileSelector {
+  /**
+   * Selects files using the File System Access API or falling back to traditional file input
+   * @returns {Promise<Array>} - Array of selected files or file handles
+   */
+  async selectFiles() {
+    try {
+      // Check if File System Access API is available (modern browsers)
+      if ('showOpenFilePicker' in window) {
         try {
-          const fileHandles = await window.showOpenFilePicker({ 
+          // Use File System Access API to get file handles
+          const fileHandles = await window.showOpenFilePicker({
             multiple: true,
             types: [
               {
-                description: 'Videos',
-                accept: { 'video/*': ['.mp4', '.mov', '.avi'] }
-              },
-              {
-                description: 'Images',
-                accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.gif'] }
+                description: 'Videos and Images',
+                accept: {
+                  'video/*': ['.mp4', '.mov', '.avi'],
+                  'image/*': ['.jpg', '.jpeg', '.png', '.gif']
+                }
               }
             ]
           });
           
-          // Process file handles
-          const files = [];
-          for (let i = 0; i < fileHandles.length; i++) {
-            const file = await fileHandles[i].getFile();
-            files.push({
-              path: file.name, // Full path not available for security
-              name: file.name
-            });
-          }
-          resolve(files);
-
+          // Return the file handles directly - our FileManager will request access
+          return fileHandles;
         } catch (err) {
-          // Check if this is an "abort" error (user cancelled)
-          if (err.name === 'AbortError') {
-            console.log('User cancelled file selection');
-          } else {
-            // Log actual errors but not cancellations
-            console.warn('File System Access API failed:', err);
-          }
-          // Fall back to traditional file input when API fails (but not when user cancels)
-          if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
-            console.log('Falling back to traditional file input due to API error');
-            return fallbackSelect();
-          }
-          // Return empty array when operation was cancelled
-          resolve([]); 
+          // If user cancels or another error occurs with modern API
+          console.log('File selection canceled or error:', err);
+          return [];
         }
-      });
-    } else {
-      // If modern API is not available, use the fallback directly
-      console.log('File System Access API not available, using fallback.');
-      return fallbackSelect();
+      } else {
+        // Fall back to traditional file input for older browsers
+        return new Promise((resolve) => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.multiple = true;
+          input.accept = '.mp4,.mov,.avi,.jpg,.jpeg,.png,.gif';
+          
+          input.onchange = async (e) => {
+            const files = Array.from(e.target.files);
+            // For backward compatibility, convert Files to a format similar to FileHandles
+            const fileHandles = files.map(file => ({
+              kind: 'file',
+              name: file.name,
+              getFile: async () => file,
+              requestPermission: async () => 'granted',
+              queryPermission: async () => 'granted'
+            }));
+            resolve(fileHandles);
+          };
+          
+          // Handle cancel case by cleaning up the input
+          input.addEventListener('cancel', () => {
+            resolve([]);
+          });
+          
+          // Trigger the file picker
+          input.click();
+        });
+      }
+    } catch (error) {
+      console.error('Error selecting files:', error);
+      return [];
     }
   }
 };
@@ -335,7 +326,8 @@ class LeedzApp {
   // Select files and add them to the file manager
   async selectAndAddFiles() {
     try {
-      const selectedFiles = await FileSelector.selectFiles();
+      const fileSelector = new FileSelector();
+      const selectedFiles = await fileSelector.selectFiles();
       if (selectedFiles && selectedFiles.length > 0) {
         // Add files to the file manager
         await this.fileManager.addFiles(selectedFiles);
