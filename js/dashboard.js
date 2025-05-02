@@ -13,7 +13,6 @@ const StorageManager = {
         chrome.storage.local.set({[key]: data}, resolve);
       });
     } else {
-      // Fallback to localStorage for testing
       localStorage.setItem(key, JSON.stringify(data));
       return Promise.resolve();
     }
@@ -28,7 +27,6 @@ const StorageManager = {
         });
       });
     } else {
-      // Fallback to localStorage for testing
       const data = localStorage.getItem(key);
       return Promise.resolve(data ? JSON.parse(data) : defaultValue);
     }
@@ -44,8 +42,8 @@ const InstagramManager = {
     // Actual implementation using Chrome tabs API
     return new Promise((resolve) => {
       if (!chrome.tabs) {
-        console.warn('Chrome tabs API not available, using mock login data');
-        resolve(MOCK_DATA.instagramLoggedIn);
+        // Not running in extension context
+        resolve(false);
         return;
       }
       
@@ -67,12 +65,10 @@ const InstagramManager = {
   }
 };
 
-// File Manager - handles file selection and management
-const FileManager = {
+// File selection helper for choosing files through browser dialogs
+const FileSelector = {
   // Select files using system dialog
-  selectFiles: function() { // Make it return a Promise consistently
-
-
+  selectFiles: async function() {
     // Define the fallback function separately for clarity
     const fallbackSelect = () => {
       return new Promise((resolve) => {
@@ -82,13 +78,9 @@ const FileManager = {
         input.accept = 'video/*,image/*';
         
         input.onchange = (e) => {
-          const selectedFiles = Array.from(e.target.files).map((file, index) => ({
-            id: Date.now() + index,
-            path: file.name, // Note: full path is not available for security
-            name: file.name,
-            dateAdded: new Date(),
-            playOrder: index + 1, // Initial order based on selection
-            lastPlayed: null
+          const selectedFiles = Array.from(e.target.files).map(file => ({
+            path: file.name, // Note: full path is not available for security reasons
+            name: file.name
           }));
           resolve(selectedFiles);
         };
@@ -99,7 +91,7 @@ const FileManager = {
 
     // Try using modern File System Access API if available
     if (window.showOpenFilePicker) {
-      return new Promise(async (resolve) => { // Wrap modern API in promise for consistency
+      return new Promise(async (resolve) => {
         try {
           const fileHandles = await window.showOpenFilePicker({ 
             multiple: true,
@@ -120,12 +112,8 @@ const FileManager = {
           for (let i = 0; i < fileHandles.length; i++) {
             const file = await fileHandles[i].getFile();
             files.push({
-              id: Date.now() + i,
-              path: file.name, // Note: full path is not available for security
-              name: file.name,
-              dateAdded: new Date(),
-              playOrder: i + 1, // Initial order based on selection
-              lastPlayed: null
+              path: file.name, // Full path not available for security
+              name: file.name
             });
           }
           resolve(files);
@@ -151,7 +139,6 @@ class LeedzApp {
     // App state
     this.state = {
       isLoggedIn: false,
-      files: [],
       sortOrder: 'date',
       postFrequency: {
         value: 24,
@@ -195,6 +182,9 @@ class LeedzApp {
     // Flag to prevent rapid re-entry
     this.isToggling = false;
     
+    // Initialize file manager
+    this.fileManager = new FileManager();
+    
     // Initialize app
     this.init();
   }
@@ -202,7 +192,10 @@ class LeedzApp {
   // Initialize the app
   init() {
     // First, load data from storage
-    this.loadData().then(() => {
+    Promise.all([
+      this.loadData(),
+      this.fileManager.init()
+    ]).then(() => {
       this.setupEventListeners();
       this.checkLoginStatus();
       
@@ -248,11 +241,11 @@ class LeedzApp {
     
 
 
-
+    
     // Select files button
     const selectFilesHandler = (event) => {
       event.stopPropagation(); // Prevent potential bubbling issues
-      this.handleFileSelection();
+      this.selectAndAddFiles();
     };
     this.elements.selectFilesButton.removeEventListener('click', selectFilesHandler); // Remove previous if any
     this.elements.selectFilesButton.addEventListener('click', selectFilesHandler); // Add the listener
@@ -287,47 +280,32 @@ class LeedzApp {
   
   // Toggle accordion section
   toggleAccordion(header) {
-    // Prevent re-entry if already toggling
     if (this.isToggling) {
       return;
     }
     this.isToggling = true;
-
-    const clickedSection = header.closest('.accordion-section');
-    // Check if the clicked section is currently active
-    const isActive = clickedSection.classList.contains('active');
-
-    // First, remove 'active' class from all sections
-    document.querySelectorAll('.accordion-section').forEach(section => {
-      // Optimization: Check before removing
-      if (section !== clickedSection && section.classList.contains('active')) {
-          section.classList.remove('active');
-      }
-    });
-
-    // Toggle the 'active' class on the clicked section
-    if (!isActive) {
-      clickedSection.classList.add('active');
+    
+    const section = header.closest('.accordion-section');
+    const expanded = section.classList.toggle('active');
+    const content = header.nextElementSibling;
+    
+    if (expanded) {
+      content.style.maxHeight = content.scrollHeight + 'px';
     } else {
-      // If it was active, remove the class (effectively toggling off)
-      clickedSection.classList.remove('active');
+      content.style.maxHeight = null;
     }
-
-    // Reset flag after a short delay to allow UI updates and prevent bounce
+    
+    // Prevent rapid toggling
     setTimeout(() => {
       this.isToggling = false;
-    }, 100); // 100ms delay seems reasonable
+    }, 300);
   }
   
   // Check Instagram login status
   async checkLoginStatus() {
     const isLoggedIn = await InstagramManager.checkLoginStatus();
-    this.state.isLoggedIn = isLoggedIn;
-    this.state.lastLoginDate = isLoggedIn ? new Date() : this.state.lastLoginDate;
-    
-    // Update UI
     this.updateLoginStatus(isLoggedIn);
-    this.saveData();
+    return isLoggedIn;
   }
   
   // Update login status in UI
@@ -344,18 +322,15 @@ class LeedzApp {
     });
   }
   
-  // Handle file selection
-  async handleFileSelection() {
+  // Select files and add them to the file manager
+  async selectAndAddFiles() {
     try {
-      const selectedFiles = await FileManager.selectFiles();
+      const selectedFiles = await FileSelector.selectFiles();
       if (selectedFiles && selectedFiles.length > 0) {
-        // Add to existing files
-        this.state.files = [...this.state.files, ...selectedFiles];
-        // Update play order
-        this.updatePlayOrder();
-        // Save data
-        this.saveData();
-        // Update UI
+        // Add files to the file manager
+        await this.fileManager.addFiles(selectedFiles);
+        
+        // Update UI to reflect new files
         this.renderFileTable();
         this.updateFileCount();
       }
@@ -364,33 +339,16 @@ class LeedzApp {
     }
   }
   
-  // Update play order based on current sort
-  updatePlayOrder() {
-    if (this.state.sortOrder === 'date') {
-      // Sort by date added
-      this.state.files.sort((a, b) => new Date(a.dateAdded) - new Date(b.dateAdded));
-    } else if (this.state.sortOrder === 'alphabetical') {
-      // Sort alphabetically
-      this.state.files.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (this.state.sortOrder === 'random') {
-      // Shuffle the array
-      this.state.files = this.state.files.sort(() => Math.random() - 0.5);
-    }
-    // Custom order is manually maintained via move up/down
-    
-    // Update play order property
-    this.state.files.forEach((file, index) => {
-      file.playOrder = index + 1;
-    });
-  }
-  
   // Render file table
   renderFileTable() {
     // Clear table
     this.elements.fileTableBody.innerHTML = '';
     
+    // Get files from file manager
+    const files = this.fileManager.getAllFiles();
+    
     // Add files to table
-    this.state.files.forEach((file, index) => {
+    files.forEach((file, index) => {
       const row = document.createElement('tr');
       
       // Index cell
@@ -400,7 +358,7 @@ class LeedzApp {
       
       // Filename cell
       const nameCell = document.createElement('td');
-      nameCell.textContent = file.path;
+      nameCell.textContent = file.name;
       row.appendChild(nameCell);
       
       // Move up cell
@@ -408,7 +366,7 @@ class LeedzApp {
       const moveUpButton = document.createElement('span');
       moveUpButton.className = 'file-action move-up';
       moveUpButton.innerHTML = '▲';
-      moveUpButton.addEventListener('click', () => this.moveFile(index, 'up'));
+      moveUpButton.addEventListener('click', () => this.handleMoveFile(index, 'up'));
       moveUpCell.appendChild(moveUpButton);
       row.appendChild(moveUpCell);
       
@@ -417,7 +375,7 @@ class LeedzApp {
       const moveDownButton = document.createElement('span');
       moveDownButton.className = 'file-action move-down';
       moveDownButton.innerHTML = '▼';
-      moveDownButton.addEventListener('click', () => this.moveFile(index, 'down'));
+      moveDownButton.addEventListener('click', () => this.handleMoveFile(index, 'down'));
       moveDownCell.appendChild(moveDownButton);
       row.appendChild(moveDownCell);
       
@@ -426,7 +384,7 @@ class LeedzApp {
       const removeButton = document.createElement('span');
       removeButton.className = 'file-action remove';
       removeButton.innerHTML = '✕';
-      removeButton.addEventListener('click', () => this.removeFile(index));
+      removeButton.addEventListener('click', () => this.handleRemoveFile(index));
       removeCell.appendChild(removeButton);
       row.appendChild(removeCell);
       
@@ -436,64 +394,36 @@ class LeedzApp {
   
   // Update file count in UI
   updateFileCount() {
-    this.elements.fileCount.textContent = `(${this.state.files.length} total)`;
-    
-    // Update color to green
-    this.elements.fileCount.style.color = 'var(--LEEDZ_DARKGREEN)';
+    this.elements.fileCount.textContent = `(${this.fileManager.getFileCount()} total)`;
   }
   
-  // Move file up or down in the list
-  moveFile(index, direction) {
-    if (direction === 'up' && index > 0) {
-      // Swap with previous item
-      [this.state.files[index], this.state.files[index - 1]] = 
-      [this.state.files[index - 1], this.state.files[index]];
-    } else if (direction === 'down' && index < this.state.files.length - 1) {
-      // Swap with next item
-      [this.state.files[index], this.state.files[index + 1]] = 
-      [this.state.files[index + 1], this.state.files[index]];
+  // Handle moving a file up or down in the list through the FileManager
+  async handleMoveFile(index, direction) {
+    const success = await this.fileManager.moveFile(index, direction);
+    if (success) {
+      this.renderFileTable();
     }
-    
-    // Update play order
-    this.updatePlayOrder();
-    
-    // Update UI and save
-    this.renderFileTable();
-    this.saveData();
   }
   
-  // Remove file from list
-  removeFile(index) {
-    this.state.files.splice(index, 1);
-    
-    // Update play order
-    this.updatePlayOrder();
-    
-    // Update UI and save
-    this.renderFileTable();
-    this.updateFileCount();
-    this.saveData();
+  // Handle removing a file from the list through the FileManager
+  async handleRemoveFile(index) {
+    const removed = await this.fileManager.removeFile(index);
+    if (removed) {
+      this.renderFileTable();
+      this.updateFileCount();
+    }
   }
   
   // Handle order selection change
-  handleOrderChange(value) {
-    console.log(`Order changed to: ${value}`); // Temporary log
-    this.state.sortOrder = value;
-    this.updatePlayOrder(); // Re-sort based on new order
-    this.renderFileTable(); // Re-render table if order affects display
+  async handleOrderChange(value) {
+    await this.fileManager.setSortOrder(value);
+    this.state.sortOrder = value; // Keep local state in sync
+    this.renderFileTable();
     
     // Update the display text
-    let orderText = 'Date added'; // Default
-    if (value === 'alphabetical') { // Keep existing case just in case
-      orderText = 'Alphabetical';
-    } else if (value === 'random') {
-      orderText = 'Random';
-    } else if (value === 'custom') {
-      orderText = 'Custom';
-    }
-    this.elements.orderType.textContent = orderText;
-    
-    this.saveData(); // Save the new state
+    const sortOrder = this.fileManager.sortOrder;
+    this.elements.orderType.textContent = sortOrder === 'date' ? 'Date added' : 
+                                          sortOrder === 'random' ? 'Random' : 'Custom';
   }
   
   // Handle time unit change
@@ -505,63 +435,62 @@ class LeedzApp {
   
   // Handle frequency value change
   handleFrequencyChange(value) {
-    // Update UI immediately
-    this.state.postFrequency.value = parseInt(value) || 1;
-    this.updateFrequencyDisplay();
+    value = parseInt(value, 10);
+    if (isNaN(value)) value = 24; // Default to 24 if not a number
     
-    // Validate the number
-    this.validateFrequencyNumber(value);
+    this.state.postFrequency.value = value;
+    this.updateFrequencyDisplay();
+    this.saveData();
   }
   
   // Validate frequency number based on unit
   validateFrequencyNumber(value) {
-    const input = this.elements.frequencyNumber;
-    const num = parseInt(value);
+    value = parseInt(value, 10);
+    if (isNaN(value)) value = 24; // Default to 24 if not a number
     
-    // Remove any previous error class
-    input.classList.remove('input-error');
-    
-    // Validate based on unit
+    // Apply min/max based on unit
     if (this.state.postFrequency.unit === 'hours') {
-      if (num < 1 || num > 24) {
-        input.classList.add('input-error');
-        return false;
-      }
-    } else if (this.state.postFrequency.unit === 'minutes') {
-      if (num < 1 || num > 60) {
-        input.classList.add('input-error');
-        return false;
-      }
+      if (value < 1) value = 1;
+      if (value > 24) value = 24;
+    } else { // minutes
+      if (value < 5) value = 5;
+      if (value > 60) value = 60;
     }
     
-    // Valid, save data
-    this.state.postFrequency.value = num;
+    this.state.postFrequency.value = value;
+    this.elements.frequencyNumber.value = value;
+    this.updateFrequencyDisplay();
     this.saveData();
-    return true;
   }
   
   // Update frequency display
   updateFrequencyDisplay() {
-    this.elements.frequencyValue.textContent = `Every ${this.state.postFrequency.value} ${this.state.postFrequency.unit}.`;
+    const value = this.state.postFrequency.value;
+    const unit = this.state.postFrequency.unit;
+    this.elements.frequencyValue.textContent = `Every ${value} ${unit}`;
   }
   
   // Render all UI elements based on current state
   renderUI() {
     // Update login status
-    this.updateLoginStatus(this.state.isLoggedIn);
+    this.elements.loginStatus.textContent = this.state.isLoggedIn ? 'Logged In' : 'Not logged in';
+    this.elements.loginButton.disabled = this.state.isLoggedIn;
     
-    // Render file table and count
+    // Render file table
     this.renderFileTable();
     this.updateFileCount();
     
-    // Set order radio buttons
+    // Set order radio
     this.elements.orderRadios.forEach(radio => {
-      radio.checked = radio.value === this.state.sortOrder;
+      // Get sort order from file manager to ensure UI is in sync
+      radio.checked = radio.value === this.fileManager.sortOrder;
     });
-    this.elements.orderType.textContent = this.state.sortOrder === 'date' ? 'Date added' : 
-                                          this.state.sortOrder === 'alphabetical' ? 'Alphabetical' : 
-                                          this.state.sortOrder === 'random' ? 'Random' : 'Custom';
     
+    // Update order display text
+    const sortOrder = this.fileManager.sortOrder;
+    this.elements.orderType.textContent = sortOrder === 'date' ? 'Date added' : 
+                                          sortOrder === 'random' ? 'Random' : 'Custom';
+     
     // Set frequency controls
     this.elements.frequencyNumber.value = this.state.postFrequency.value;
     this.elements.timeUnitRadios.forEach(radio => {
@@ -574,7 +503,6 @@ class LeedzApp {
   async loadData() {
     const data = await StorageManager.loadData('leedz_story', {
       isLoggedIn: false,
-      files: [],
       sortOrder: 'date',
       postFrequency: {
         value: 24,
