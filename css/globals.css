@@ -1,0 +1,206 @@
+ /* GLOBAL VARIABLES */
+:root {
+  --CENTER-WIDTH: 46vw;
+
+  --LEEDZ_BKG: white;
+  --LEEDZ_GRAY:rgba(239, 242, 247, 1); 
+  --LEEDZ_DARKGRAY: rgb(159, 173, 166);
+  --LEEDZ_LIGHTGREEN:rgb(215, 240, 230);
+  --LEEDZ_GREEN: rgb(97, 234, 178);
+  --LEEDZ_DARKGREEN: #01ac56;
+  --LEEDZ_EMERALD:#008a44;
+
+  --FONT_1: "Ebrima", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --FONT_2: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+  "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --FONT_3: "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@font-face { 
+  font-family: "Ebrima";
+  src: url("../fonts/ebrima.ttf") format("truetype");
+}
+.ebrima_font { font-family: "Ebrima", sans-serif; }
+
+@font-face { 
+  font-family: "Ebrima_bold";
+  src: url("../fonts/ebrima-bold.ttf") format("truetype");
+}
+.ebrima_bold { 
+  font-family: "Ebrima_bold", sans-serif;
+  line-height: 1.5em;
+}
+
+* {
+  padding: 0;
+  margin: 0;
+}
+
+html, body {
+  overflow-x: hidden;
+  overflow-y: hidden;
+  color: black;
+  background-color: white;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  line-height: 1.2;
+  font-family: var(--FONT_3);
+}
+
+#main_panel {
+  flex: 1 0 auto;
+  top:0;
+  max-height:950px;
+  overflow-y:scroll !important;
+  margin-bottom:200px;
+}
+
+.column  {
+  flex-basis: 100%;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  border:0;
+  width:100%;
+  justify-content:space-around;
+}
+
+#copyright_footer {
+  display: flex;
+  align-items: center;
+  position: fixed;
+  bottom: 0;
+  margin: 0 auto;
+  line-height:1;
+  padding:10px 2vw 10px 2vw;
+  width:100%;
+  height:4vh;
+  background-color: var(--LEEDZ_EMERALD);
+  color:white;
+  font-family: var(--FONT_2);
+  font-weight: 400;
+}
+
+@media screen and (max-width: 649px) {
+  #copyright_footer {
+    font-size: smaller;
+  }
+}
+
+#copyright_footer span {
+  margin:0 auto;
+}
+
+#copyright_footer a {
+  text-decoration: none;
+  color:white;
+}
+
+/* The sidepanel menu */
+.trades_side {
+  height: 100%;
+  width: max-content; /* 0 width - change this with JavaScript */
+  position: fixed; /* Stay in place */
+  z-index: 400; /* Stay on top */
+  left: 0;
+  overflow-x: hidden; 
+  overflow-y: hidden;
+  padding-right:0px;
+  background-color: var(--LEEDZ_GRAY);
+  border-right: 2px solid lightgray;
+}
+
+/* The sidepanel links */
+.trades_side a {
+  text-decoration: none;
+}
+
+.openbtn {
+  position:fixed;
+  z-index: 700;
+  left:200px;
+  top:auto;
+  transform: rotate(180deg);
+  font-size: 20px;
+  font-weight:600;
+  cursor: pointer;
+  background-color: var(--LEEDZ_GRAY);
+  color: green;
+  padding: 10px 15px;
+  border: none;
+}
+
+._05 {
+  flex: .5;
+}
+
+._1 {
+  flex: 1;
+}
+
+._15 {
+  flex: 1.5;
+}
+
+._2 {
+  flex: 2;
+}
+
+._25 {
+  flex: 2.5;
+}
+
+._3 {
+  flex: 3;
+}
+
+._35 {
+  flex: 3.5;
+}
+
+._4 {
+  flex: 4;
+}
+
+._45 {
+  flex: 4.5;
+}
+
+._5 {
+  flex: 5;
+}
+
+._55 {
+  flex: 5.5;
+}
+
+._6 {
+  flex: 6;
+}
+
+._7 {
+  flex: 7;
+}
+
+._75 {
+  flex: 7.5;
+}
+
+._8 {
+  flex: 8;
+}
+
+._85 {
+  flex: 8.5;
+}
+
+._9 {
+  flex: 9;
+}

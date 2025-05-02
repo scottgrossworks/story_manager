@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Leedz Story Manager</title>
+  <link rel="stylesheet" href="css/globals.css" />
+  <link rel="stylesheet" href="css/leedz_layout.css" />
+</head>
+<body>
+  <!-- Fixed Header -->
+  <header class="leedz-header">
+    <div class="logo-container">
+      <!-- <span class="logo-text"><span class="logo-bold">Leedz</span></span> -->
+      <img id="logoImage" src="img/logo_black.png" alt="Leedz Logo" />
+      <span class="logo-subtitle">Story Manager</span>
+    </div>
+  </header>
+
+  <!-- Scrollable Content Area -->
+  <div class="content-area">
+    <!-- Accordion Section 1: Instagram Login -->
+    <div class="accordion-section">
+      <div class="accordion-header" data-section="login">
+        <div class="triangle"></div>
+        <h3>Log into IG</h3>
+        <div class="status-indicator" id="loginStatus">Not logged in</div>
+      </div>
+      <div class="accordion-content" id="loginContent">
+        <button class="action-button" id="goToIGBtn">Go to Instagram and Log In</button>
+      </div>
+    </div>
+
+    <!-- Accordion Section 2: File Management -->
+    <div class="accordion-section">
+      <div class="accordion-header" data-section="files">
+        <div class="triangle"></div>
+        <h3>Post these files :</h3>
+        <div class="file-count" id="fileCount">(0 total)</div>
+      </div>
+      <div class="accordion-content" id="filesContent">
+        <div class="file-table-container">
+          <table class="file-table" id="fileTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Filename</th>
+                <th>Move Up</th>
+                <th>Move Down</th>
+                <th>Remove</th>
+              </tr>
+            </thead>
+            <tbody id="fileTableBody">
+              <!-- Files will be populated here -->
+            </tbody>
+          </table>
+        </div>
+        <button class="action-button green" id="selectFilesBtn">Select Video Files</button>
+      </div>
+    </div>
+
+    <!-- Accordion Section 3: Ordering -->
+    <div class="accordion-section">
+      <div class="accordion-header" data-section="order">
+        <div class="triangle"></div>
+        <h3>In this order :</h3>
+        <div class="order-type" id="orderType">Date added</div>
+      </div>
+      <div class="accordion-content" id="orderContent">
+        <div class="radio-option">
+          <label>
+            <input type="radio" name="order" value="date" checked>
+            <span class="radio-circle"></span>
+            Date added
+          </label>
+        </div>
+        <div class="radio-option">
+          <label>
+            <input type="radio" name="order" value="alphabetical">
+            <span class="radio-circle"></span>
+            Alphabetical
+          </label>
+        </div>
+        <div class="radio-option">
+          <label>
+            <input type="radio" name="order" value="custom">
+            <span class="radio-circle"></span>
+            Custom
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Accordion Section 4: Frequency -->
+    <div class="accordion-section">
+      <div class="accordion-header" data-section="frequency">
+        <div class="triangle"></div>
+        <h3>This often :</h3>
+        <div class="frequency-value" id="frequencyValue">Every 24 hrs.</div>
+      </div>
+      <div class="accordion-content" id="frequencyContent">
+        <div class="frequency-controls">
+          <label>One post every:</label>
+          <input type="number" id="frequencyNumber" min="1" max="60" value="24">
+          <div class="radio-option">
+            <label>
+              <input type="radio" name="timeUnit" value="hours" checked>
+              <span class="radio-circle"></span>
+              hours
+            </label>
+          </div>
+          <div class="radio-option">
+            <label>
+              <input type="radio" name="timeUnit" value="minutes">
+              <span class="radio-circle"></span>
+              minutes
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fixed Footer -->
+  <footer class="leedz-footer">
+    <div class="grass-overlay"></div>
+    <div class="footer-content">
+      <div class="footer-links">
+        <a href="#" class="footer-link">•&nbsp;Facebook TOS Compliance</a>
+        <a href="#" class="footer-link">•&nbsp;Contact Us</a>
+      </div>
+      <div class="copyright">
+        All content is Copyright &copy; 2025, The Leedz, all rights reserved by owner.
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>
