@@ -92,7 +92,7 @@ const FileManager = {
     if (!CONFIG.useRealFileSystem) {
       return Promise.resolve(MOCK_DATA.files);
     }
-    
+
     // Define the fallback function separately for clarity
     const fallbackSelect = () => {
       return new Promise((resolve) => {
@@ -151,9 +151,10 @@ const FileManager = {
           resolve(files);
 
         } catch (err) {
-          console.warn('File System Access API failed or cancelled, using fallback:', err);
-          // If the modern API fails (e.g., user cancels), use the fallback
-          resolve(fallbackSelect()); // Resolve the outer promise with the fallback promise
+          // Log the error, but don't automatically trigger fallback on cancel/error
+          console.warn('File System Access API failed or cancelled:', err);
+          // Resolve with empty array to indicate no files selected via this method
+          resolve([]); 
         }
       });
     } else {

@@ -176,7 +176,7 @@ body {
 }
 
 .file-table {
-  width: 100%;
+  width: 70%;
   border-collapse: collapse;
   margin-bottom: 15px;
 }
@@ -192,6 +192,8 @@ body {
 }
 
 .file-action {
+  font-size: x-large;
+  font-weight: 600;
   cursor: pointer;
   display: inline-block;
   width: 24px;
