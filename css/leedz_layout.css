@@ -26,34 +26,11 @@ body {
   align-items: flex-start;
 }
 
-/* Commented out old text logo styles
-.logo-text {
-  font-size: 45px;
-  font-family: "Ebrima", sans-serif;
-  color: black;
-  display: flex;
-  align-items: flex-end; /* Align 'The' with the bottom of 'Leedz' *
-}
 
-.logo-text::before {
-  content: "The";
-  font-size: 20px;
-  font-family: "Ebrima", sans-serif;
-  margin-right: 2px;
-  margin-top: 5px;
-  font-weight: normal;
-}
-
-.logo-bold {
-  letter-spacing: .005em;
-  font-weight: bold;
-  font-family: "Ebrima", sans-serif;
-}
-*/
 
 /* New Logo Image Style */
 #logoImage {
-  height: 50px; /* Adjust as needed */
+  height: 45px; /* Adjust as needed */
   margin-right: 10px; /* Space between logo and subtitle */
 }
 
@@ -61,7 +38,7 @@ body {
   font-size: 28px;
   color: var(--LEEDZ_DARKGREEN);
   margin-left: 10px;
-  margin-top:20px;
+  margin-top:18px;
   font-family: "Arial Rounded MT Bold", "Arial Bold", Arial, sans-serif;
 }
 

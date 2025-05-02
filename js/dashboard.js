@@ -88,73 +88,79 @@ const InstagramManager = {
 // File Manager - handles file selection and management
 const FileManager = {
   // Select files using system dialog
-  selectFiles: async function() {
+  selectFiles: function() { // Make it return a Promise consistently
     if (!CONFIG.useRealFileSystem) {
       return Promise.resolve(MOCK_DATA.files);
     }
     
-    try {
-      // Try using modern File System Access API
-      if (window.showOpenFilePicker) {
-        const fileHandles = await window.showOpenFilePicker({
-          multiple: true,
-          types: [
-            {
-              description: 'Videos',
-              accept: {
-                'video/*': ['.mp4', '.mov', '.avi']
-              }
-            },
-            {
-              description: 'Images',
-              accept: {
-                'image/*': ['.jpg', '.jpeg', '.png', '.gif']
-              }
-            }
-          ]
-        });
+    // Define the fallback function separately for clarity
+    const fallbackSelect = () => {
+      return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.accept = 'video/*,image/*';
         
-        // Process file handles
-        const files = [];
-        for (let i = 0; i < fileHandles.length; i++) {
-          const file = await fileHandles[i].getFile();
-          files.push({
-            id: Date.now() + i,
+        input.onchange = (e) => {
+          const selectedFiles = Array.from(e.target.files).map((file, index) => ({
+            id: Date.now() + index,
             path: file.name, // Note: full path is not available for security
             name: file.name,
             dateAdded: new Date(),
-            playOrder: i + 1,
+            playOrder: index + 1, // Initial order based on selection
             lastPlayed: null
-          });
-        }
+          }));
+          resolve(selectedFiles);
+        };
         
-        return files;
-      }
-    } catch (err) {
-      console.warn('File System Access API failed:', err);
+        input.click(); // Trigger the dialog
+      });
+    };
+
+    // Try using modern File System Access API if available
+    if (window.showOpenFilePicker) {
+      return new Promise(async (resolve) => { // Wrap modern API in promise for consistency
+        try {
+          const fileHandles = await window.showOpenFilePicker({ 
+            multiple: true,
+            types: [
+              {
+                description: 'Videos',
+                accept: { 'video/*': ['.mp4', '.mov', '.avi'] }
+              },
+              {
+                description: 'Images',
+                accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.gif'] }
+              }
+            ]
+          });
+          
+          // Process file handles
+          const files = [];
+          for (let i = 0; i < fileHandles.length; i++) {
+            const file = await fileHandles[i].getFile();
+            files.push({
+              id: Date.now() + i,
+              path: file.name, // Note: full path is not available for security
+              name: file.name,
+              dateAdded: new Date(),
+              playOrder: i + 1, // Initial order based on selection
+              lastPlayed: null
+            });
+          }
+          resolve(files);
+
+        } catch (err) {
+          console.warn('File System Access API failed or cancelled, using fallback:', err);
+          // If the modern API fails (e.g., user cancels), use the fallback
+          resolve(fallbackSelect()); // Resolve the outer promise with the fallback promise
+        }
+      });
+    } else {
+      // If modern API is not available, use the fallback directly
+      console.log('File System Access API not available, using fallback.');
+      return fallbackSelect();
     }
-    
-    // Fallback to regular file input
-    return new Promise((resolve) => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.multiple = true;
-      input.accept = 'video/*,image/*';
-      
-      input.onchange = (e) => {
-        const files = Array.from(e.target.files).map((file, index) => ({
-          id: Date.now() + index,
-          path: file.name, // Note: full path is not available for security
-          name: file.name,
-          dateAdded: new Date(),
-          playOrder: index + 1,
-          lastPlayed: null
-        }));
-        resolve(files);
-      };
-      
-      input.click();
-    });
   }
 };
 
@@ -238,7 +244,12 @@ class LeedzApp {
     });
     
     // Select files button
-    this.elements.selectFilesButton.addEventListener('click', () => this.handleFileSelection());
+    const selectFilesHandler = (event) => {
+      event.stopPropagation(); // Prevent potential bubbling issues
+      this.handleFileSelection();
+    };
+    this.elements.selectFilesButton.removeEventListener('click', selectFilesHandler); // Remove previous if any
+    this.elements.selectFilesButton.addEventListener('click', selectFilesHandler); // Add the listener
     
     // Order radio buttons
     this.elements.orderRadios.forEach(radio => {
@@ -344,6 +355,9 @@ class LeedzApp {
     } else if (this.state.sortOrder === 'alphabetical') {
       // Sort alphabetically
       this.state.files.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (this.state.sortOrder === 'random') {
+      // Shuffle the array
+      this.state.files = this.state.files.sort(() => Math.random() - 0.5);
     }
     // Custom order is manually maintained via move up/down
     
@@ -446,16 +460,23 @@ class LeedzApp {
   
   // Handle order selection change
   handleOrderChange(value) {
+    console.log(`Order changed to: ${value}`); // Temporary log
     this.state.sortOrder = value;
-    this.elements.orderType.textContent = value === 'date' ? 'Date added' : 
-                                         value === 'alphabetical' ? 'Alphabetical' : 'Custom';
+    this.updatePlayOrder(); // Re-sort based on new order
+    this.renderFileTable(); // Re-render table if order affects display
     
-    // Update sorting if not custom
-    if (value !== 'custom') {
-      this.updatePlayOrder();
-      this.renderFileTable();
-      this.saveData();
+    // Update the display text
+    let orderText = 'Date added'; // Default
+    if (value === 'alphabetical') { // Keep existing case just in case
+      orderText = 'Alphabetical';
+    } else if (value === 'random') {
+      orderText = 'Random';
+    } else if (value === 'custom') {
+      orderText = 'Custom';
     }
+    this.elements.orderType.textContent = orderText;
+    
+    this.saveData(); // Save the new state
   }
   
   // Handle time unit change
@@ -521,7 +542,8 @@ class LeedzApp {
       radio.checked = radio.value === this.state.sortOrder;
     });
     this.elements.orderType.textContent = this.state.sortOrder === 'date' ? 'Date added' : 
-                                          this.state.sortOrder === 'alphabetical' ? 'Alphabetical' : 'Custom';
+                                          this.state.sortOrder === 'alphabetical' ? 'Alphabetical' : 
+                                          this.state.sortOrder === 'random' ? 'Random' : 'Custom';
     
     // Set frequency controls
     this.elements.frequencyNumber.value = this.state.postFrequency.value;
