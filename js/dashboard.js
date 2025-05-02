@@ -1,30 +1,14 @@
 // Dashboard Script for Leedz Story Manager
-// Main functionality with fallbacks for testing
 
-// Configuration and mock data for testing
-const CONFIG = {
-  useRealInstagram: true,    // Set to false to use mock Instagram login
-  useRealFileSystem: true,   // Set to false to use mock file selection
-  useRealStorage: true       // Set to false to use localStorage instead of chrome.storage
-};
 
-// Mock data for testing when real APIs are disabled
-const MOCK_DATA = {
-  instagramLoggedIn: true,
-  files: [
-    { id: 1, path: 'C:/Users/Scott/Desktop/VIDS/fun_video.mp4', name: 'fun_video.mp4', dateAdded: new Date(), playOrder: 1, lastPlayed: null },
-    { id: 2, path: 'C:/Users/Scott/Desktop/VIDS/birthday.mp4', name: 'birthday.mp4', dateAdded: new Date(), playOrder: 2, lastPlayed: null },
-    { id: 3, path: 'C:/Users/Admin/Desktop/TMP/grandma.mp4', name: 'grandma.mp4', dateAdded: new Date(), playOrder: 3, lastPlayed: null },
-    { id: 4, path: 'C:/Users/Admin/Desktop/football_game.mp4', name: 'football_game.mp4', dateAdded: new Date(), playOrder: 4, lastPlayed: null },
-    { id: 5, path: 'C:/Users/Scott/Video/dinner_party.mp4', name: 'dinner_party.mp4', dateAdded: new Date(), playOrder: 5, lastPlayed: null }
-  ]
-};
+
+
 
 // Storage module - handles persistence with fallbacks
 const StorageManager = {
   // Save data to storage
   saveData: async function(key, data) {
-    if (CONFIG.useRealStorage && chrome.storage) {
+    if (chrome.storage) {
       return new Promise((resolve) => {
         chrome.storage.local.set({[key]: data}, resolve);
       });
@@ -37,7 +21,7 @@ const StorageManager = {
   
   // Load data from storage
   loadData: async function(key, defaultValue = null) {
-    if (CONFIG.useRealStorage && chrome.storage) {
+    if (chrome.storage) {
       return new Promise((resolve) => {
         chrome.storage.local.get(key, (result) => {
           resolve(result[key] || defaultValue);
@@ -55,9 +39,7 @@ const StorageManager = {
 const InstagramManager = {
   // Check if user is logged in to Instagram
   checkLoginStatus: async function() {
-    if (!CONFIG.useRealInstagram) {
-      return Promise.resolve(MOCK_DATA.instagramLoggedIn);
-    }
+
     
     // Actual implementation using Chrome tabs API
     return new Promise((resolve) => {
@@ -89,9 +71,7 @@ const InstagramManager = {
 const FileManager = {
   // Select files using system dialog
   selectFiles: function() { // Make it return a Promise consistently
-    if (!CONFIG.useRealFileSystem) {
-      return Promise.resolve(MOCK_DATA.files);
-    }
+
 
     // Define the fallback function separately for clarity
     const fallbackSelect = () => {
@@ -238,12 +218,37 @@ class LeedzApp {
       header.addEventListener('click', () => this.toggleAccordion(header));
     });
     
+    
+    
     // Login button
+    // 5/2 - original method -- simple 
+    // just wait 1 second to check if IG login success
+    /** 
     this.elements.loginButton.addEventListener('click', () => {
       InstagramManager.openInstagram();
       setTimeout(() => this.checkLoginStatus(), 1000); // Check after delay
     });
+    */
+
+    this.elements.loginButton.addEventListener('click', () => {
+      InstagramManager.openInstagram();
     
+      // Poll every 2 seconds for up to 30 seconds
+      const maxAttempts = 15;
+      let attempts = 0;
+    
+      const interval = setInterval(async () => {
+        const isLoggedIn = await this.checkLoginStatus();
+        if (isLoggedIn || ++attempts >= maxAttempts) {
+          clearInterval(interval);
+        }
+      }, 2000);
+    });
+    
+    
+
+
+
     // Select files button
     const selectFilesHandler = (event) => {
       event.stopPropagation(); // Prevent potential bubbling issues
@@ -579,11 +584,8 @@ class LeedzApp {
 
 // When the DOM is fully loaded, initialize the app
 document.addEventListener('DOMContentLoaded', () => {
-  // Create app instance
+  // Create app instance -- calls init()
   const app = new LeedzApp();
-  
-  // Initialize the app
-  app.init();
   
   // Expose app to window for debugging in dev mode
   window.leedzApp = app;
