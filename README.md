@@ -84,3 +84,4 @@ That said, **Leedz Story Manager exists to help creators stay visible, stay comp
 ---
 
 Questions? Reach out: theleedz.com@gmail.com
+uploading new file from desktop
